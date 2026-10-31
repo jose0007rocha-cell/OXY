@@ -169,7 +169,7 @@ function c_logo() {
 
   choice=$(
     printf "%s\n" "${options[@]}" |
-      FZF_PREVIEW_DIR="$DIR" fzf \
+      FZF_PREVIEW_DIR="$DIR" OXY_BANNER_BIN="$OXY_BANNER_BIN" OXY_CFG="$OXY_CFG_FILE" fzf \
         --prompt="Select Logo ➤ " \
         --exit-0 \
         --height=40% \
@@ -180,9 +180,9 @@ function c_logo() {
         --no-scrollbar \
         --preview 'bash -c "
             FILE=\$(echo {} | sed \"s/^[0-9]\+[.] //; s/ .*//\");
-            cat \"$FZF_PREVIEW_DIR/\$FILE\" 2>/dev/null || file \"$FZF_PREVIEW_DIR/\$FILE\"
+            bash \"$OXY_BANNER_BIN\" --logo \"$FZF_PREVIEW_DIR/\$FILE\" 2>/dev/null
         "' \
-        --preview-window=right:40%:wrap
+        --preview-window=right:50%:wrap
   ) || true
 
   if [[ -z "$choice" ]]; then

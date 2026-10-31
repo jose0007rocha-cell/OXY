@@ -279,6 +279,7 @@ setup_theader() {
 
   # --- arquivos de configuracao do OXY ---
   mkdir -p "$theader_dir"
+  rm -rf "$theader_dir/logo" # tira os logos antigos (melancia, dragao...)
   for d in bin logo tpt lib; do
     if [[ -e "$SCRIPT_DIR/$d" ]]; then
       cp -r "$SCRIPT_DIR/$d" "$theader_dir/"
@@ -289,6 +290,13 @@ setup_theader() {
   # nao sobrescreve o nome/titulo que a pessoa ja escolheu
   if [[ ! -f "$theader_dir/theader.cfg" ]]; then
     cp "$SCRIPT_DIR/theader.cfg" "$theader_dir/theader.cfg"
+  fi
+
+  # se o logo escolhido antes nao existe mais, volta para o padrao
+  cur_logo=$(sed -n 's/^logo=//p' "$theader_dir/theader.cfg" | tail -n1)
+  if [[ ! -f "$theader_dir/logo/$cur_logo" ]]; then
+    sed -i '/^logo=/d' "$theader_dir/theader.cfg"
+    printf 'logo=cyber.txt\n' >>"$theader_dir/theader.cfg"
   fi
 
   # banner como comando global

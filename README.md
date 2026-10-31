@@ -13,8 +13,8 @@ Repositório: https://github.com/jose0007rocha-cell/OXY.git
 ```
 
 ## O que mudou
-- Logos novos: **escudo, espada, caveira, dragão** (`logo/*.txt`).
-- Moldura **mais fina** (3/8 de célula) com **degradê**, letras de bloco com degradê e **prompt com degradê** — tudo na mesma paleta (`neon` por padrão; também `fogo`, `verde`, `oceano`, `roxo`).
+- Logos novos em **escudos de linha** (`logo/*.txt`): `cyber`, `castelo`, `escudo-s`, `pico`, `asas`. São só a forma em blocos; a cor vem do **degradê**, aplicado na hora (o `clogo` mostra a prévia colorida). Para criar o seu, faça um `.txt` de até 16 colunas x 8 linhas com blocos `▀▄▌▐▘▝▖▗▛▜▙▟█`.
+- Moldura **mais fina** (3/8 de célula) com **degradê**, logo, letras, **prompt** e **selo de data/dia** (à direita) com degradê — tudo na mesma paleta (`neon` por padrão; também `fogo`, `verde`, `oceano`, `roxo`).
 - Prompt: `┏━━[ Termux ]·····[ Oxy ]━━━>` / `┗━━❯❯❯`.
 - **Abre rápido**: o banner não faz nenhum `fork` e escreve tudo de uma vez (antes levava ~4 s por causa de um padrão `extglob` lento); o prompt é montado uma vez por sessão; a checagem de update do oh-my-zsh é desligada.
 - **Teclado**: após trocar, o Termux recarrega as configurações e oferece reiniciar o app (algumas opções só valem depois disso).
@@ -34,7 +34,7 @@ Depois abra uma nova sessão (ou `source ~/.zshrc`).
 | Comando  | Função                                   |
 |----------|------------------------------------------|
 | `theader`| menu geral                               |
-| `clogo`  | trocar o logo (escudo/espada/caveira/dragão) |
+| `clogo`  | trocar o logo (escudos)                  |
 | `ctitle` | trocar as letras grandes do banner (ex.: OXY) |
 | `cname`  | trocar o nome do prompt (ex.: Oxy)       |
 | `ctpro`  | trocar o termux.properties               |

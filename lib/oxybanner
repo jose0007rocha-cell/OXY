@@ -16,7 +16,7 @@ CFG="${OXY_CFG:-$HOME/.config/theader/theader.cfg}"
 LOGO_DIR="${OXY_LOGO_DIR:-$HOME/.config/theader/logo}"
 
 # ---------- config (sem fork) ----------
-title="OXY"; logo="dragao.txt"; indent=2; paleta="neon"; frame="mid"; tname="Oxy"
+title="OXY"; logo="cyber.txt"; indent=2; paleta="neon"; frame="mid"; tname="Oxy"
 if [[ -f "$CFG" ]]; then
   while IFS='=' read -r k v || [[ -n "$k" ]]; do
     v="${v%$'\r'}"
@@ -120,8 +120,47 @@ if [[ "$1" == "--prompt" ]]; then
   exit 0
 fi
 
+# ======================= MODO RPROMPT (selo de data) =======================
+# zsh: usa %D{...} (o zsh preenche a data a cada prompt, sem fork). Cada pedaco do
+# selo tem a sua cor de fundo no degrade; o texto fica preto/branco conforme o brilho.
+if [[ "$1" == "--rprompt" ]]; then
+  sh="${2:-zsh}"
+  case "$sh" in
+    zsh)  ob='%{'; cb='%}' ;;
+    bash) ob='\['; cb='\]' ;;
+    *)    ob=''; cb='' ;;
+  esac
+  PLc=$'\ue0b6'; PRc=$'\ue0b4'; CALc=$'\uf073'
+  if [[ "$sh" == zsh ]]; then
+    slots=(" |1" "${CALc}|1" " |1" "%D{%d}|2" "/|1" "%D{%b}|3" "/|1" "%D{%y}|2" " |1" "%D{%a}|3" " |1")
+  else
+    printf -v d1 '%(%d)T' -1; printf -v d2 '%(%b)T' -1; printf -v d3 '%(%y)T' -1; printf -v d4 '%(%a)T' -1
+    slots=(" |1" "${CALc}|1" " |1" "${d1}|2" "/|1" "${d2}|${#d2}" "/|1" "${d3}|2" " |1" "${d4}|${#d4}" " |1")
+  fi
+  total=0
+  for sg in "${slots[@]}"; do ((total += ${sg##*|})); done
+  gradcol 0 "$total"; printf -v CS '%s\e[0;38;2;%d;%d;%dm%s' "$ob" "$GR" "$GG" "$GB" "$cb"
+  out="${CS}${PLc}"
+  idx=0
+  for sg in "${slots[@]}"; do
+    txt="${sg%|*}"; w="${sg##*|}"
+    gradcol "$((idx + w / 2))" "$total"
+    lum=$(((299 * GR + 587 * GG + 114 * GB) / 1000))
+    if ((lum > 150)); then fr=15; fg=15; fb=25; else fr=255; fg=255; fb=255; fi
+    printf -v CS '%s\e[1;38;2;%d;%d;%d;48;2;%d;%d;%dm%s' "$ob" "$fr" "$fg" "$fb" "$GR" "$GG" "$GB" "$cb"
+    out+="${CS}${txt}"
+    ((idx += w))
+  done
+  gradcol "$((total - 1))" "$total"
+  printf -v CS '%s\e[0;38;2;%d;%d;%dm%s' "$ob" "$GR" "$GG" "$GB" "$cb"
+  out+="${CS}${PRc}${ob}"$'\e[0m'"${cb}"
+  printf '%s' "$out"
+  exit 0
+fi
+
 MODE=full
-if [[ "$1" == "--text" ]]; then MODE=text; title="${2:-$title}"; fi
+if [[ "$1" == "--text" ]]; then MODE=text; title="${2:-$title}"
+elif [[ "$1" == "--logo" ]]; then MODE=logo; logo="${2:-$logo}"; fi
 
 # ---------- largura do terminal ----------
 W="${COLUMNS:-0}"
@@ -172,17 +211,57 @@ done
 calc_total() { total_px=0; local c; for c in "${chars[@]}"; do ((total_px += GW[$c] + 1)); done; ((total_px--)); }
 calc_total
 
-# ---------- logo ----------
+# ---------- logo (maquete sem cor -> pintada com o degrade) ----------
+# arquivo do logo; se o escolhido nao existir, usa o primeiro .txt da pasta
+LOGO_FILE=""
+if [[ "$logo" == */* ]]; then
+  [[ -f "$logo" ]] && LOGO_FILE="$logo"
+elif [[ -f "$LOGO_DIR/$logo" ]]; then
+  LOGO_FILE="$LOGO_DIR/$logo"
+else
+  for f in "$LOGO_DIR"/*.txt; do [[ -f "$f" ]] && { LOGO_FILE="$f"; break; }; done
+fi
+
 logo_rows=(); logo_pw=(); logo_w=0
-if [[ "$MODE" == full && W -ge 44 && -f "$LOGO_DIR/$logo" ]]; then
+if [[ -n "$LOGO_FILE" ]] && { [[ "$MODE" == logo ]] || [[ "$MODE" == full && W -ge 44 ]]; }; then
   while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
     logo_rows+=("$line")
     strip_ansi "$line"
     logo_pw+=("${#REPLY}")
     ((${#REPLY} > logo_w)) && logo_w=${#REPLY}
-  done <"$LOGO_DIR/$logo"
+  done <"$LOGO_FILE"
 fi
 ((${#logo_rows[@]} > 8)) && logo_rows=("${logo_rows[@]:0:8}")
+
+# logo sem codigos de cor: pinta cada bloco com o degrade na diagonal
+nrows=${#logo_rows[@]}
+if ((nrows)); then
+  ltotal=$((logo_w + 2 * nrows))
+  for ((r = 0; r < nrows; r++)); do
+    line="${logo_rows[r]}"
+    [[ "$line" == *$'\e'* ]] && continue
+    s=""
+    for ((c = 0; c < ${#line}; c++)); do
+      ch="${line:c:1}"
+      if [[ "$ch" == " " ]]; then
+        s+=" "
+      else
+        gradcol "$((c + 2 * r))" "$ltotal"
+        printf -v CS '\e[38;2;%d;%d;%dm' "$GR" "$GG" "$GB"
+        s+="${CS}${ch}"
+      fi
+    done
+    logo_rows[r]="$s"
+  done
+fi
+
+if [[ "$MODE" == logo ]]; then   # so o logo (preview do clogo)
+  out=""
+  for line in "${logo_rows[@]}"; do out+="${line}"$'\e[0m\n'; done
+  printf '%s' "$out"
+  exit 0
+fi
 
 if [[ "$MODE" == text ]]; then
   avail=$W; left=0

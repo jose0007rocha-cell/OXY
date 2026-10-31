@@ -280,12 +280,14 @@ ZSH_THEME_GIT_PROMPT_SUFFIX="%F{8})%f "
 ZSH_THEME_GIT_PROMPT_DIRTY="%F{1}*%f"
 ZSH_THEME_GIT_PROMPT_CLEAN=""
 
-_oxy_pl=$'\ue0b6'   # cantos arredondados (Nerd Font)
-_oxy_pr=$'\ue0b4'
-_oxy_cal=$'\uf073'
+# selo de data/dia com degrade (mesma paleta): oxy-banner --rprompt zsh
+_oxy_pill="$(command oxy-banner --rprompt zsh 2>/dev/null)"
+if [[ -z "$_oxy_pill" ]]; then
+  _oxy_pill="%F{8}%D{%d/%b/%y} %D{%a}%f"
+fi
 
-# lado direito: jobs, erro, git, pasta e data
-RPROMPT="%(1j.%F{2}●%f .)%(0?..%F{1}✘%f )"'$(git_prompt_info)'"%F{8}%~%f %F{2}${_oxy_pl}%K{2}%F{black}${_oxy_cal} %F{white}%B%D{%d/%b/%y}%b %K{8}%F{0} %D{%a} %k%F{8}${_oxy_pr}%f"
+# lado direito: jobs, erro, git, pasta e o selo de data
+RPROMPT="%(1j.%F{2}●%f .)%(0?..%F{1}✘%f )"'$(git_prompt_info)'"%F{8}%~%f ${_oxy_pill}"
 EOF
 
   echo "✅ Tema '$theme_name' criado em $theme_file"
