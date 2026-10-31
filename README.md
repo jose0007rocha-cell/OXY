@@ -13,17 +13,12 @@ Repositório: https://github.com/jose0007rocha-cell/OXY.git
 ```
 
 ## O que mudou
-- Logos novos: **escudo, espada, caveira, dragão** (`logo/*.txt`). Os antigos (melancia etc.) foram removidos.
-- Moldura **grossa** (meio-bloco) e letras em **blocos grossos**, sem depender de figlet/boxes/lolcat.
-- Prompt: `┏━━[ Termux ]·····[ Oxy ]━━━>` com traços grossos; a pasta e a data ficam à direita.
-- Novo comando **`cname`** para trocar o nome do prompt (`Oxy`).
-- **Correções** (por que o nome não entrava):
-  - o `fzf` sai com código 1 e o `set -e` do `bin/theader` matava o script antes de salvar → agora é tratado;
-  - nomes com `& | \ /` quebravam o `sed` que gravava o config → agora grava sem `sed`;
-  - o antigo `pixelfont` ignorava letras minúsculas/acentos → fonte própria (A–Z, 0–9, acentos viram letra simples);
-  - o nome do prompt (`TNAME`) não tinha como ser alterado e vinha dentro de `%{ %}` (quebrava o cursor);
-  - o tema nunca era ativado (`ZSH_THEME` ficava no padrão) → agora o instalador ativa `oxy`;
-  - `remove_theader` era chamada mas não existia; `cp dotfile/.*` copiava `.` e `..`; `exit` dentro de funções fechava o menu.
+- Logos novos: **escudo, espada, caveira, dragão** (`logo/*.txt`).
+- Moldura **mais fina** (3/8 de célula) com **degradê**, letras de bloco com degradê e **prompt com degradê** — tudo na mesma paleta (`neon` por padrão; também `fogo`, `verde`, `oceano`, `roxo`).
+- Prompt: `┏━━[ Termux ]·····[ Oxy ]━━━>` / `┗━━❯❯❯`.
+- **Abre rápido**: o banner não faz nenhum `fork` e escreve tudo de uma vez (antes levava ~4 s por causa de um padrão `extglob` lento); o prompt é montado uma vez por sessão; a checagem de update do oh-my-zsh é desligada.
+- **Teclado**: após trocar, o Termux recarrega as configurações e oferece reiniciar o app (algumas opções só valem depois disso).
+- **Correções** (por que o nome não entrava): `fzf` retornando 1 + `set -e`; `sed` quebrando com `& | \ /`; fonte antiga sem minúsculas/acentos; `TNAME` sem comando para alterar; tema nunca ativado; `remove_theader` inexistente.
 
 ## Instalação
 ```bash
@@ -43,7 +38,8 @@ Depois abra uma nova sessão (ou `source ~/.zshrc`).
 | `ctitle` | trocar as letras grandes do banner (ex.: OXY) |
 | `cname`  | trocar o nome do prompt (ex.: Oxy)       |
 | `ctpro`  | trocar o termux.properties               |
+| `ccor`   | trocar a paleta do degradê               |
 | `cztheme`| trocar o tema do zsh                     |
 
-Config: `~/.config/theader/theader.cfg` (`title=`, `TNAME=`, `logo=`, `indent=`).
+Config: `~/.config/theader/theader.cfg` (`title=`, `TNAME=`, `logo=`, `indent=`, `paleta=`, `frame=mid|thick|thin`).
 Teste rápido do banner: `oxy-banner`.

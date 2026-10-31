@@ -1,22 +1,28 @@
 # =========[ OXY - bash ]=========
 export USER=$(whoami)
 
-# banner (moldura + logo + letras)
+# banner (moldura + logo + letras com degrade)
 if [[ $- == *i* ]] && command -v oxy-banner >/dev/null 2>&1; then
   clear
-  oxy-banner
+  COLUMNS=${COLUMNS:-} oxy-banner
 fi
 
-# nome do prompt: ~/.config/theader/theader.cfg  (TNAME=)  -> comando: cname
-_oxy_name() {
-  local n=""
-  [[ -r "$HOME/.config/theader/theader.cfg" ]] &&
-    n=$(sed -n 's/^TNAME=//p' "$HOME/.config/theader/theader.cfg" | tail -n1)
-  printf '%s' "${n:-Oxy}"
-}
+# prompt com degrade: montado 1 vez; refeito so quando o nome (TNAME=) muda
+_OXY_PN=""
 _oxy_ps1() {
-  local r='\[\e[1;31m\]' b='\[\e[1;34m\]' c='\[\e[1;36m\]' g='\[\e[90m\]' y='\[\e[1;33m\]' z='\[\e[0m\]'
-  PS1="\n${r}┏━━[${c} Termux ${r}]${g}·····${r}[${b} $(_oxy_name) ${r}]━━━${y}>${z}\n${r}┗━━❯${b}❯${g}❯${z} "
+  local line name="" cfg="$HOME/.config/theader/theader.cfg"
+  if [[ -r "$cfg" ]]; then
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      [[ "$line" == TNAME=?* ]] && name="${line#TNAME=}"
+    done <"$cfg"
+  fi
+  [[ -z "$name" ]] && name="Oxy"
+  if [[ "$name" != "$_OXY_PN" ]]; then
+    _OXY_PN="$name"
+    local out
+    out="$(command oxy-banner --prompt bash 2>/dev/null)"
+    if [[ -n "$out" ]]; then PS1="$out "; else PS1='\n┏━━[ Termux ]·····[ Oxy ]━━━>\n┗━━❯❯❯ '; fi
+  fi
 }
 PROMPT_COMMAND="_oxy_ps1${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 

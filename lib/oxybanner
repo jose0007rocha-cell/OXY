@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # =====================================================================
-#  OXY banner  -  moldura grossa + logo + titulo em letras de bloco
-#  Nao depende de figlet / boxes / lolcat (so de bash e tput opcional).
+#  OXY banner - moldura fina em degrade + logo + letras de bloco em degrade
+#  100% sem fork (so builtins do bash) e escrito de uma vez so na tela.
 #
 #  Uso:
-#    oxy-banner                 -> banner completo (le ~/.config/theader/theader.cfg)
-#    oxy-banner --text "Nome"   -> so as letras grandes (usado no preview do ctitle)
-#  Variaveis opcionais: OXY_CFG (arquivo de config), OXY_LOGO_DIR
+#    oxy-banner                    banner completo (le ~/.config/theader/theader.cfg)
+#    oxy-banner --text "Nome"      so as letras grandes (preview do ctitle / ccor)
+#    oxy-banner --prompt zsh|bash|ansi   imprime a string do prompt com degrade
+#  Variaveis: OXY_CFG, OXY_LOGO_DIR, OXY_PALETA (forca uma paleta)
 # =====================================================================
 export LC_ALL=C.UTF-8
 shopt -s extglob
@@ -15,7 +16,7 @@ CFG="${OXY_CFG:-$HOME/.config/theader/theader.cfg}"
 LOGO_DIR="${OXY_LOGO_DIR:-$HOME/.config/theader/logo}"
 
 # ---------- config (sem fork) ----------
-title="OXY"; logo="dragao.txt"; indent=2
+title="OXY"; logo="dragao.txt"; indent=2; paleta="neon"; frame="mid"; tname="Oxy"
 if [[ -f "$CFG" ]]; then
   while IFS='=' read -r k v || [[ -n "$k" ]]; do
     v="${v%$'\r'}"
@@ -23,8 +24,100 @@ if [[ -f "$CFG" ]]; then
       title)  [[ -n "$v" ]] && title="$v" ;;
       logo)   [[ -n "$v" ]] && logo="$v" ;;
       indent) [[ "$v" =~ ^[0-9]+$ ]] && indent="$v" ;;
+      paleta) [[ -n "$v" ]] && paleta="$v" ;;
+      frame)  [[ -n "$v" ]] && frame="$v" ;;
+      TNAME)  [[ -n "$v" ]] && tname="$v" ;;
     esac
   done <"$CFG"
+fi
+paleta="${OXY_PALETA:-$paleta}"
+
+
+# tira os codigos de cor ESC[...m de $1 -> REPLY (so builtins, sem regex: o
+# padrao extglob ${x//\e\[*([0-9;])m/} leva ~0,5s por linha em UTF-8)
+strip_ansi() {
+  local s="$1" out=""
+  while [[ "$s" == *$'\e['* ]]; do
+    out+="${s%%$'\e['*}"
+    s="${s#*$'\e['}"
+    s="${s#*m}"
+  done
+  REPLY="$out$s"
+}
+
+# ---------- paletas (r g b por parada) ----------
+PAL_R=(); PAL_G=(); PAL_B=()
+set_palette() {
+  local -a stops
+  case "$1" in
+    fogo)   stops=("255 230 0" "255 140 0" "255 50 50" "200 0 90") ;;
+    verde)  stops=("0 255 170" "50 255 70" "160 230 20") ;;
+    oceano) stops=("0 255 200" "0 170 255" "60 90 255") ;;
+    roxo)   stops=("255 120 200" "190 80 255" "80 120 255") ;;
+    *)      stops=("0 230 255" "70 130 255" "180 80 255" "255 70 170") ;; # neon
+  esac
+  local s
+  for s in "${stops[@]}"; do
+    set -- $s
+    PAL_R+=("$1"); PAL_G+=("$2"); PAL_B+=("$3")
+  done
+}
+set_palette "$paleta"
+
+# cor no ponto i de t (0..t-1) -> GR GG GB
+gradcol() {
+  local i=$1 t=$2 n=${#PAL_R[@]} pos seg f
+  ((t < 2)) && t=2
+  ((i < 0)) && i=0
+  ((i > t - 1)) && i=$((t - 1))
+  pos=$((i * (n - 1) * 256 / (t - 1)))
+  seg=$((pos / 256)); f=$((pos % 256))
+  if ((seg >= n - 1)); then seg=$((n - 2)); f=256; fi
+  GR=$((PAL_R[seg] + (PAL_R[seg + 1] - PAL_R[seg]) * f / 256))
+  GG=$((PAL_G[seg] + (PAL_G[seg + 1] - PAL_G[seg]) * f / 256))
+  GB=$((PAL_B[seg] + (PAL_B[seg + 1] - PAL_B[seg]) * f / 256))
+}
+# monta o escape de cor em CS ($1=1 -> video reverso, para bordas finas)
+colorseq() {
+  if (($1)); then printf -v CS '\e[0;7;38;2;%d;%d;%dm' "$GR" "$GG" "$GB"
+  else printf -v CS '\e[0;38;2;%d;%d;%dm' "$GR" "$GG" "$GB"; fi
+}
+
+# ======================= MODO PROMPT =======================
+if [[ "$1" == "--prompt" ]]; then
+  sh="${2:-ansi}"
+  n="$tname"
+  case "$sh" in
+    zsh)  n="${n//\\/\\\\}"; n="${n//%/%%}"; n="${n//\$/\\\$}"; n="${n//\`/\\\`}"; ob='%{'; cb='%}' ;;
+    bash) n="${n//\\/\\\\}"; n="${n//\$/\\\$}"; n="${n//\`/\\\`}"; ob='\['; cb='\]' ;;
+    *)    ob=''; cb='' ;;
+  esac
+  # segmentos: texto|negrito
+  segs=("┏━━[|0" " Termux |1" "]|0" "·····|0" "[|0" " ${n} |1" "]|0" "━━━>|0")
+  total=0
+  for sg in "${segs[@]}"; do t="${sg%|*}"; t="${t//\\\\/x}"; ((total += ${#t})); done
+  out=$'\n'; idx=0
+  for sg in "${segs[@]}"; do
+    txt="${sg%|*}"; bold="${sg##*|}"
+    # para contar a largura visivel ignora as barras de escape do zsh/bash
+    vis="${txt//\\\\/x}"; vis="${vis//%%/x}"; vis="${vis//\\\$/x}"; vis="${vis//\\\`/x}"
+    w=${#vis}
+    gradcol "$((idx + w / 2))" "$total"
+    if [[ "$bold" == 1 ]]; then printf -v CS '%s\e[1;38;2;%d;%d;%dm%s' "$ob" "$GR" "$GG" "$GB" "$cb"
+    else printf -v CS '%s\e[0;38;2;%d;%d;%dm%s' "$ob" "$GR" "$GG" "$GB" "$cb"; fi
+    out+="${CS}${txt}"
+    ((idx += w))
+  done
+  out+=$'\n'
+  l2=("┗" "━" "━" "❯" "❯" "❯"); i=0
+  for ch in "${l2[@]}"; do
+    gradcol "$i" 6
+    printf -v CS '%s\e[1;38;2;%d;%d;%dm%s' "$ob" "$GR" "$GG" "$GB" "$cb"
+    out+="${CS}${ch}"; ((i++))
+  done
+  out+="${ob}"$'\e[0m'"${cb} "
+  printf '%s' "$out"
+  exit 0
 fi
 
 MODE=full
@@ -33,7 +126,7 @@ if [[ "$1" == "--text" ]]; then MODE=text; title="${2:-$title}"; fi
 # ---------- largura do terminal ----------
 W="${COLUMNS:-0}"
 if ((W < 1)); then W=$(tput cols 2>/dev/null || echo 0); fi
-if ((W < 1)); then read -r _ W < <(stty size 2>/dev/null) ; fi
+if ((W < 1)); then read -r _ W < <(stty size 2>/dev/null); fi
 ((W < 1)) && W=60
 ((W < 24)) && W=24
 
@@ -71,46 +164,47 @@ for ((i = 0; i < ${#t}; i++)); do
 done
 ((${#chars[@]} == 0)) && chars=(O X Y)
 
-# largura do texto em "pixels" de fonte
-glyph_w() { local r=(${G[$1]}); echo "${#r[0]}"; }
-total_px=0
-for c in "${chars[@]}"; do ((total_px += $(glyph_w "$c") + 1)); done
-((total_px--))
+# largura (em pixels de fonte) dos glifos, sem fork
+declare -A GW
+for c in "${chars[@]}"; do
+  if [[ -z "${GW[$c]+x}" ]]; then r=(${G[$c]}); GW[$c]=${#r[0]}; fi
+done
+calc_total() { total_px=0; local c; for c in "${chars[@]}"; do ((total_px += GW[$c] + 1)); done; ((total_px--)); }
+calc_total
 
 # ---------- logo ----------
-logo_rows=(); logo_w=0
+logo_rows=(); logo_pw=(); logo_w=0
 if [[ "$MODE" == full && W -ge 44 && -f "$LOGO_DIR/$logo" ]]; then
   while IFS= read -r line || [[ -n "$line" ]]; do
     logo_rows+=("$line")
-    plain="${line//$'\e'\[*([0-9;])m/}"
-    ((${#plain} > logo_w)) && logo_w=${#plain}
+    strip_ansi "$line"
+    logo_pw+=("${#REPLY}")
+    ((${#REPLY} > logo_w)) && logo_w=${#REPLY}
   done <"$LOGO_DIR/$logo"
 fi
 ((${#logo_rows[@]} > 8)) && logo_rows=("${logo_rows[@]:0:8}")
 
 if [[ "$MODE" == text ]]; then
-  avail=$W
+  avail=$W; left=0
 else
   left=$((${#logo_rows[@]} ? indent + logo_w + 2 : 0))
   avail=$((W - 2 - left - 1))
 fi
 
-# escala: 2 colunas por pixel (letras grossas) se couber, senao 1
 px=2; ((total_px * 2 > avail)) && px=1
-# se ainda nao cabe, corta o final do texto
 while ((total_px > avail && ${#chars[@]} > 1)); do
   unset 'chars[${#chars[@]}-1]'; chars=("${chars[@]}")
-  total_px=0
-  for c in "${chars[@]}"; do ((total_px += $(glyph_w "$c") + 1)); done
-  ((total_px--))
+  calc_total
 done
 text_w=$((total_px * px))
 
-# ---------- monta as 5 linhas do titulo com degrade verde ----------
-grad() { # $1=coluna $2=total -> r;g;b  (verde vivo -> verde limao)
-  local n=$1 d=$2; ((d < 1)) && d=1
-  echo "$((50 + 100 * n / d));$((255 - 30 * n / d));$((70 - 50 * n / d))"
-}
+# ---------- cor de cada coluna do titulo (degrade horizontal) ----------
+COLFG=()
+for ((c = 0; c < text_w; c++)); do
+  gradcol "$c" "$text_w"
+  printf -v 'COLFG[c]' '\e[38;2;%d;%d;%dm' "$GR" "$GG" "$GB"
+done
+
 title_rows=()
 for ((row = 0; row < 5; row++)); do
   s=""; col=0
@@ -119,15 +213,14 @@ for ((row = 0; row < 5; row++)); do
     bits="${pat[row]}"
     for ((b = 0; b < ${#bits}; b++)); do
       if [[ "${bits:b:1}" == 1 ]]; then
-        s+=$'\e[38;2;'"$(grad $((col * px)) "$text_w")"m
-        for ((k = 0; k < px; k++)); do s+="█"; done
+        if ((px == 2)); then s+="${COLFG[col * 2]}██"; else s+="${COLFG[col]}█"; fi
       else
-        for ((k = 0; k < px; k++)); do s+=" "; done
+        ((px == 2)) && s+="  " || s+=" "
       fi
       ((col++))
     done
     if ((ci < ${#chars[@]} - 1)); then
-      for ((k = 0; k < px; k++)); do s+=" "; done
+      ((px == 2)) && s+="  " || s+=" "
       ((col++))
     fi
   done
@@ -135,37 +228,57 @@ for ((row = 0; row < 5; row++)); do
 done
 
 if [[ "$MODE" == text ]]; then
-  for r in "${title_rows[@]}"; do printf '%s\n' "$r"; done
+  out=""
+  for r in "${title_rows[@]}"; do out+="$r"$'\n'; done
+  printf '%s' "$out"
   exit 0
 fi
 
-# ---------- moldura grossa (meio-bloco) ----------
-BLUE=$'\e[1;38;5;33m'; RST=$'\e[0m'
+# ---------- moldura em degrade (espessura: fine=3/8, thick=1/2, thin=1/8) ----------
+case "$frame" in
+  thick) TOPC="▀" TOPV=0 BOTC="▄" LC="▌" RC="▐" RV=0 ;;
+  thin)  TOPC="▇" TOPV=1 BOTC="▁" LC="▏" RC="▉" RV=1 ;;
+  *)     TOPC="▅" TOPV=1 BOTC="▃" LC="▍" RC="▋" RV=1 ;;
+esac
+RST=$'\e[0m'
 inner=$((W - 2))
-hline() { local s="" i; for ((i = 0; i < inner; i++)); do s+="$1"; done; printf '%s' "$s"; }
-top="${BLUE}▛$(hline ▀)▜${RST}"
-bot="${BLUE}▙$(hline ▄)▟${RST}"
-pad() { local n=$1 s=""; ((n < 0)) && n=0; printf '%*s' "$n" ""; }
+
+top=""; bot=""
+for ((i = 0; i < W; i++)); do
+  gradcol "$i" "$W";            colorseq "$TOPV"; top+="${CS}${TOPC}"
+  gradcol "$((W - 1 - i))" "$W"; colorseq 0;      bot+="${CS}${BOTC}"
+done
+top+="$RST"; bot+="$RST"
+
+LSEQ=(); RSEQ=()
+for ((r = 0; r < 8; r++)); do
+  gradcol "$r" 8;       colorseq 0;     LSEQ[r]="${CS}${LC}"
+  gradcol "$((7 - r))" 8; colorseq "$RV"; RSEQ[r]="${CS}${RC}"
+done
+
+pad() { printf -v PADS '%*s' "$(($1 < 0 ? 0 : $1))" ""; }
 
 region=$((inner - left))
 tl=$(((region - text_w) / 2)); ((tl < 0)) && tl=0
 tr=$((region - text_w - tl)); ((tr < 0)) && tr=0
 
-printf '%s\n' "$top"
+out="$top"$'\n'
 for ((r = 0; r < 8; r++)); do
-  line="${BLUE}▌${RST}"
+  line="${LSEQ[r]}${RST}"
   if ((${#logo_rows[@]})); then
     lr="${logo_rows[r]:-}"
-    plain="${lr//$'\e'\[*([0-9;])m/}"
-    line+="$(pad "$indent")${lr}${RST}$(pad $((logo_w - ${#plain} + 2)))"
+    pad "$indent"; line+="$PADS${lr}${RST}"
+    pad "$((logo_w - ${logo_pw[r]:-0} + 2))"; line+="$PADS"
   fi
-  tr_idx=$((r - 1))
-  if ((tr_idx >= 0 && tr_idx < 5)); then
-    line+="$(pad "$tl")${title_rows[tr_idx]}$(pad "$tr")"
+  ti=$((r - 1))
+  if ((ti >= 0 && ti < 5)); then
+    pad "$tl"; line+="$PADS${title_rows[ti]}"
+    pad "$tr"; line+="$PADS"
   else
-    line+="$(pad $((region)))"
+    pad "$region"; line+="$PADS"
   fi
-  line+="${BLUE}▐${RST}"
-  printf '%s\n' "$line"
+  line+="${RSEQ[r]}${RST}"
+  out+="$line"$'\n'
 done
-printf '%s\n' "$bot"
+out+="$bot"$'\n'
+printf '%s' "$out"

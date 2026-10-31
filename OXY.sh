@@ -207,7 +207,7 @@ menu_theader_setup() {
     esac
   else
     # Already installed → show options
-    local main_options="1. Change Logo\n2. Change Title\n3. Change Keyboard\n4. Change ZSH Theme\n5. Change Prompt Name\n6. Remove Theader"
+    local main_options="1. Change Logo\n2. Change Title\n3. Change Keyboard\n4. Change ZSH Theme\n5. Change Prompt Name\n6. Change Colors\n7. Remove Theader"
 
     local subchoice
     subchoice=$(
@@ -236,7 +236,11 @@ menu_theader_setup() {
         echo -e "\033[1;34m[ℹ] Changing prompt name...\033[0m"
         c_name
         ;;
-      "6. Remove Theader")
+      "6. Change Colors")
+        echo -e "\033[1;34m[ℹ] Changing gradient colors...\033[0m"
+        c_cor
+        ;;
+      "7. Remove Theader")
         echo -e "\033[1;31m[⚠] Removing Theader...\033[0m"
         remove_theader
         ;;
@@ -297,6 +301,11 @@ setup_theader() {
   cp "$SCRIPT_DIR/dotfile/.profile" "$HOME/.profile"
   cp "$SCRIPT_DIR/dotfile/.aliases" "$HOME/.aliases"
 
+  # abrir mais rapido: desliga a checagem de update do oh-my-zsh (faz git/rede na abertura)
+  if ! grep -q "^zstyle.*omz:update" "$ZSHRC"; then
+    sed -i '0,/^source \$ZSH\/oh-my-zsh.sh/s//zstyle ":omz:update" mode disabled\nsource $ZSH\/oh-my-zsh.sh/' "$ZSHRC"
+  fi
+
   # linhas do .zshrc: so uma vez, sempre em linha nova
   if ! grep -q "oxy-banner" "$ZSHRC"; then
     {
@@ -316,10 +325,10 @@ setup_theader() {
 
   if [[ -f $theader_dir/bin/theader ]]; then
     install -Dm700 "$theader_dir/bin/theader" "$PREFIX/bin/theader"
-    for i in clogo ctitle cname ctpro cztheme; do
+    for i in clogo ctitle cname ccor ctpro cztheme; do
       ln -sfr "$PREFIX/bin/theader" "$PREFIX/bin/$i"
     done
-    echo "theader instalado ✅  (comandos: clogo ctitle cname ctpro cztheme)"
+    echo "theader instalado ✅  (comandos: clogo ctitle cname ccor ctpro cztheme)"
   else
     echo "Erro: $theader_dir/bin/theader nao encontrado!"
   fi
@@ -328,7 +337,7 @@ setup_theader() {
 remove_theader() {
   rm -rf "$HOME/.config/theader"
   rm -f "$PREFIX/bin/theader" "$PREFIX/bin/oxy-banner"
-  for i in clogo ctitle cname ctpro cztheme; do rm -f "$PREFIX/bin/$i"; done
+  for i in clogo ctitle cname ccor ctpro cztheme; do rm -f "$PREFIX/bin/$i"; done
   rm -f "$ZSH_CUSTOM/themes/oxy.zsh-theme"
   if [[ -f "$ZSHRC" ]]; then
     sed -i '/^# --- OXY ---$/,/oxy-banner/d' "$ZSHRC"

@@ -1,24 +1,12 @@
 function fish_prompt
-    set -l config_file ~/.config/theader/theader.cfg
-    set -l TNAME Oxy
-    if test -f $config_file
-        set -l name_from_cfg (string match -r '^TNAME=.*' (cat $config_file) | cut -d'=' -f2-)
-        if test -n "$name_from_cfg"
-            set TNAME $name_from_cfg
+    # prompt com degrade vindo de: oxy-banner --prompt ansi (montado 1 vez por sessao)
+    if not set -q __oxy_prompt
+        if type -q oxy-banner
+            set -g __oxy_prompt (command oxy-banner --prompt ansi 2>/dev/null | string collect)
+        end
+        if test -z "$__oxy_prompt"
+            set -g __oxy_prompt (printf '\n┏━━[ Termux ]·····[ Oxy ]━━━>\n┗━━❯❯❯')
         end
     end
-
-    set -l red (set_color -o red)
-    set -l blue (set_color -o blue)
-    set -l cyan (set_color -o cyan)
-    set -l yellow (set_color -o yellow)
-    set -l gray (set_color brblack)
-    set -l reset (set_color normal)
-
-    # linha 1:  ┏━━[ Termux ]·····[ Nome ]━━━>
-    echo
-    echo -n $red"┏━━["$cyan" Termux "$red"]"$gray"·····"$red"["$blue" $TNAME "$red"]━━━"$yellow">"$reset
-    echo
-    # linha 2:  ┗━━❯❯❯
-    echo -n $red"┗━━❯"$blue"❯"$gray"❯"$reset" "
+    printf '%s ' $__oxy_prompt
 end

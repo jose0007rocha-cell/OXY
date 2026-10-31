@@ -228,7 +228,7 @@ create_custom_theme() {
 # -----------------------------------------------------
 #  Tema OXY para Oh-My-Zsh
 #
-#  ┏━━[ Termux ]·····[ Oxy ]━━━>
+#  ┏━━[ Termux ]·····[ Oxy ]━━━>   (com degrade)
 #  ┗━━❯❯❯
 #
 #  O nome (Oxy) vem de TNAME= em ~/.config/theader/theader.cfg
@@ -242,9 +242,21 @@ if [[ "$plugins" == *"zsh-syntax-highlighting"* ]]; then
 fi
 
 _OXY_CFG="$HOME/.config/theader/theader.cfg"
-_OXY_PN="Oxy"
+_OXY_PN=""
 
-_oxy_read_name() {
+# O desenho do prompt (degrade) vem de: oxy-banner --prompt zsh
+# Montado 1 vez ao abrir e so refeito se o nome (TNAME=) mudar: zero fork por prompt.
+_oxy_build_prompt() {
+  local out
+  out="$(command oxy-banner --prompt zsh 2>/dev/null)"
+  if [[ -n "$out" ]]; then
+    PROMPT="${out} "
+  else
+    PROMPT=$'\n%F{cyan}┏━━[ Termux ]·····[ Oxy ]━━━>%f\n%F{cyan}┗━━❯❯❯%f '
+  fi
+}
+
+_oxy_check_name() {
   local line name=""
   if [[ -r "$_OXY_CFG" ]]; then
     for line in "${(@f)$(<"$_OXY_CFG")}"; do
@@ -252,11 +264,14 @@ _oxy_read_name() {
     done
   fi
   [[ -z "$name" ]] && name="Oxy"
-  _OXY_PN="${name//\%/%%}"   # protege o % para o prompt
+  if [[ "$name" != "$_OXY_PN" ]]; then
+    _OXY_PN="$name"
+    _oxy_build_prompt
+  fi
 }
 autoload -Uz add-zsh-hook
-add-zsh-hook precmd _oxy_read_name
-_oxy_read_name
+add-zsh-hook precmd _oxy_check_name
+_oxy_check_name
 
 setopt prompt_subst
 
@@ -268,9 +283,6 @@ ZSH_THEME_GIT_PROMPT_CLEAN=""
 _oxy_pl=$'\ue0b6'   # cantos arredondados (Nerd Font)
 _oxy_pr=$'\ue0b4'
 _oxy_cal=$'\uf073'
-
-# linha 1: traços grossos em vermelho, [ Termux ] ciano, dots cinza, [ Nome ] azul, seta amarela
-PROMPT=$'\n%F{red}%B┏━━[%b%F{cyan}%B Termux %b%F{red}%B]%b%F{8}·····%F{red}%B[%b%F{blue}%B ${_OXY_PN} %b%F{red}%B]━━━%F{yellow}>%b%f\n%F{red}%B┗━━%F{red}❯%F{blue}❯%F{8}❯%b%f '
 
 # lado direito: jobs, erro, git, pasta e data
 RPROMPT="%(1j.%F{2}●%f .)%(0?..%F{1}✘%f )"'$(git_prompt_info)'"%F{8}%~%f %F{2}${_oxy_pl}%K{2}%F{black}${_oxy_cal} %F{white}%B%D{%d/%b/%y}%b %K{8}%F{0} %D{%a} %k%F{8}${_oxy_pr}%f"

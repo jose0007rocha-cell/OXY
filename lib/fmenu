@@ -40,6 +40,31 @@ cfg_clean() {
   printf '%s' "${v:0:20}"
 }
 
+show_banner() { # mostra o banner atual (preview imediato apos mudar algo)
+  clear
+  OXY_CFG="$OXY_CFG_FILE" OXY_LOGO_DIR="$(dirname "$OXY_CFG_FILE")/logo" "$OXY_BANNER_BIN" || true
+}
+
+# paleta do degrade (moldura + letras + prompt)
+function c_cor() {
+  confi
+  local pal result
+  result=$(
+    printf '%s\n' neon fogo verde oceano roxo | fzf \
+      --prompt="Paleta ▶ " --border --margin=1,5% \
+      --preview "OXY_PALETA={} OXY_CFG=$OXY_CFG_FILE OXY_LOGO_DIR=$(dirname "$OXY_CFG_FILE")/logo $OXY_BANNER_BIN" \
+      --preview-window=down:70%:wrap 2>/dev/null
+  ) || true
+  pal=$(cfg_clean "$result")
+  if [[ -z "$pal" ]]; then
+    echo "Nenhuma paleta escolhida. Nada foi alterado."
+    return 0
+  fi
+  cfg_set paleta "$pal"
+  echo -e "\\033[32m[✔] Paleta salva: $pal\\033[0m"
+  show_banner
+}
+
 function type_title() {
   confi
   local current title
@@ -80,7 +105,7 @@ EOF
 
   cfg_set title "$title"
   echo -e "\033[32m[✔] Titulo salvo: \"$title\"\033[0m"
-  echo "Abra uma nova sessao (ou rode: oxy-banner) para ver o resultado."
+  show_banner
 }
 
 # nome que aparece no prompt: ──[ Termux ]·····[ NOME ]───>
@@ -96,7 +121,9 @@ function c_name() {
   fi
   cfg_set TNAME "$name"
   echo -e "\033[32m[✔] Nome do prompt salvo: \"$name\"\033[0m"
-  echo "Rode 'source ~/.zshrc' ou abra uma nova sessao."
+  echo "Pronto: no zsh o novo nome aparece no proximo prompt; no bash/fish, abra uma nova sessao."
+  OXY_CFG="$OXY_CFG_FILE" "$OXY_BANNER_BIN" --prompt ansi 2>/dev/null || true
+  echo
 }
 
 function c_logo() {
@@ -197,6 +224,7 @@ function c_logo() {
   # ====== Step 3: Update Config File ======
   cfg_set logo "$choice_clean"
   cfg_set indent "$indent_choice"
+  show_banner
 
   # ====== Done ======
   echo -e "\033[32m[✔] Updated logo=$choice_clean, indent=$indent_choice\033[0m"
@@ -261,9 +289,23 @@ function key_properties() {
     echo "termux_properties=$selected_hash" >>"$CONFIG"
   fi
 
-  termux-reload-settings
-
+  sync
+  termux-reload-settings 2>/dev/null || true
   echo -e "\033[32m[✔] Updated termux.properties → $choice_clean\033[0m"
+
+  # Algumas opcoes do Termux (teclado extra, altura da barra...) so passam a valer
+  # depois de reiniciar o app. Oferece fazer isso agora, sem precisar "sair e entrar".
+  local ans=""
+  read -r -n1 -p "Reiniciar o Termux agora para aplicar o teclado? [s/N] " ans || true
+  echo
+  if [[ "$ans" == [sSyY] ]]; then
+    echo "Fechando o Termux... abra o app de novo."
+    sleep 1
+    am startservice -a com.termux.service_stop -n com.termux/.app.TermuxService >/dev/null 2>&1 ||
+      echo "Nao consegui fechar sozinho: deslize a barra de notificacoes e toque em EXIT no Termux."
+  else
+    echo "Se o teclado nao mudou, feche e abra o Termux (ou rode 'theader' e escolha Change Keyboard de novo)."
+  fi
 }
 
 # ====== Change current theme from .zshrc ====== #
