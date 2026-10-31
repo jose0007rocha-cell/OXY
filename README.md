@@ -14,8 +14,9 @@ Repositório: https://github.com/jose0007rocha-cell/OXY.git
 
 ## O que mudou
 - Logos em blocos (`logo/*.txt`), todos pintados pelo **degradê** na hora (o `clogo` mostra a prévia colorida):
-  - monogramas **JR**: `jr-escudo` (padrão), `jr-escudo2`, `jr-castelo`, `jr-coroa`, `jr-circulo`, `jr-v`, `jr-hex`, `jr-gema`, `jr-emblema`, `jr-chevron`;
-  - escudos: `cyber`, `castelo`, `escudo-s`, `pico`, `asas`.
+  - monogramas **JR**: `jr-escudo2`, `jr-coroa`, `jr-circulo`, `jr-v`, `jr-hex`, `jr-emblema`, `jr-chevron`;
+  - formas: `losango` (padrão), `chama-a`, `gota-q`, `gota-a`;
+  - escudos: `cyber`, `escudo-s`, `pico`, `asas`.
   Para criar o seu, faça um `.txt` de até 16 colunas x 8 linhas com blocos `▀▄▌▐▘▝▖▗▛▜▙▟█`.
 - Moldura **mais fina** (3/8 de célula) com **degradê**, logo, letras, **prompt** e **selo de data/dia** (à direita) com degradê — tudo na mesma paleta (`neon` por padrão; também `fogo`, `verde`, `oceano`, `roxo`).
 - Prompt: `┏━━[ Termux ]·····[ Oxy ]━━━>` / `┗━━❯❯❯`.

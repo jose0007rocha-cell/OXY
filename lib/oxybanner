@@ -16,7 +16,7 @@ CFG="${OXY_CFG:-$HOME/.config/theader/theader.cfg}"
 LOGO_DIR="${OXY_LOGO_DIR:-$HOME/.config/theader/logo}"
 
 # ---------- config (sem fork) ----------
-title="OXY"; logo="jr-escudo.txt"; indent=2; paleta="neon"; frame="mid"; tname="Oxy"
+title="OXY"; logo="losango.txt"; indent=2; paleta="neon"; frame="mid"; tname="Oxy"
 if [[ -f "$CFG" ]]; then
   while IFS='=' read -r k v || [[ -n "$k" ]]; do
     v="${v%$'\r'}"
