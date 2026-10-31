@@ -296,7 +296,7 @@ setup_theader() {
   cur_logo=$(sed -n 's/^logo=//p' "$theader_dir/theader.cfg" | tail -n1)
   if [[ ! -f "$theader_dir/logo/$cur_logo" ]]; then
     sed -i '/^logo=/d' "$theader_dir/theader.cfg"
-    printf 'logo=cyber.txt\n' >>"$theader_dir/theader.cfg"
+    printf 'logo=jr-escudo.txt\n' >>"$theader_dir/theader.cfg"
   fi
 
   # banner como comando global

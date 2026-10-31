@@ -13,7 +13,10 @@ Repositório: https://github.com/jose0007rocha-cell/OXY.git
 ```
 
 ## O que mudou
-- Logos novos em **escudos de linha** (`logo/*.txt`): `cyber`, `castelo`, `escudo-s`, `pico`, `asas`. São só a forma em blocos; a cor vem do **degradê**, aplicado na hora (o `clogo` mostra a prévia colorida). Para criar o seu, faça um `.txt` de até 16 colunas x 8 linhas com blocos `▀▄▌▐▘▝▖▗▛▜▙▟█`.
+- Logos em blocos (`logo/*.txt`), todos pintados pelo **degradê** na hora (o `clogo` mostra a prévia colorida):
+  - monogramas **JR**: `jr-escudo` (padrão), `jr-escudo2`, `jr-castelo`, `jr-coroa`, `jr-circulo`, `jr-v`, `jr-hex`, `jr-gema`, `jr-emblema`, `jr-chevron`;
+  - escudos: `cyber`, `castelo`, `escudo-s`, `pico`, `asas`.
+  Para criar o seu, faça um `.txt` de até 16 colunas x 8 linhas com blocos `▀▄▌▐▘▝▖▗▛▜▙▟█`.
 - Moldura **mais fina** (3/8 de célula) com **degradê**, logo, letras, **prompt** e **selo de data/dia** (à direita) com degradê — tudo na mesma paleta (`neon` por padrão; também `fogo`, `verde`, `oceano`, `roxo`).
 - Prompt: `┏━━[ Termux ]·····[ Oxy ]━━━>` / `┗━━❯❯❯`.
 - **Abre rápido**: o banner não faz nenhum `fork` e escreve tudo de uma vez (antes levava ~4 s por causa de um padrão `extglob` lento); o prompt é montado uma vez por sessão; a checagem de update do oh-my-zsh é desligada.
