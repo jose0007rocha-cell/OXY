@@ -19,7 +19,7 @@ Repositório: https://github.com/jose0007rocha-cell/OXY.git
   - escudos: `cyber`, `escudo-s`, `pico`, `asas`.
   Para criar o seu, faça um `.txt` de até 16 colunas x 8 linhas com blocos `▀▄▌▐▘▝▖▗▛▜▙▟█`.
 - Moldura **mais fina** (3/8 de célula) com **degradê**, logo, letras, **prompt** e **selo de data/dia** (à direita) com degradê — tudo na mesma paleta (`neon` por padrão; também `fogo`, `verde`, `oceano`, `roxo`).
-- Prompt: `┏━━[ Termux ]·····[ Oxy ]━━━>` / `┗━━❯❯❯`.
+- Prompt: `┏━━[ Termux ]·····[ Oxy ]━━━>` / `┗━━❯❯❯` — os dois textos dos colchetes são editáveis (`cterm` e `cname`).
 - **Abre rápido**: o banner não faz nenhum `fork` e escreve tudo de uma vez (antes levava ~4 s por causa de um padrão `extglob` lento); o prompt é montado uma vez por sessão; a checagem de update do oh-my-zsh é desligada.
 - **Teclado**: após trocar, o Termux recarrega as configurações e oferece reiniciar o app (algumas opções só valem depois disso).
 - **Correções** (por que o nome não entrava): `fzf` retornando 1 + `set -e`; `sed` quebrando com `& | \ /`; fonte antiga sem minúsculas/acentos; `TNAME` sem comando para alterar; tema nunca ativado; `remove_theader` inexistente.
@@ -41,9 +41,10 @@ Depois abra uma nova sessão (ou `source ~/.zshrc`).
 | `clogo`  | trocar o logo (escudos)                  |
 | `ctitle` | trocar as letras grandes do banner (ex.: OXY) |
 | `cname`  | trocar o nome do prompt (ex.: Oxy)       |
+| `cterm`  | trocar o 1º rótulo do prompt (ex.: Termux) |
 | `ctpro`  | trocar o termux.properties               |
 | `ccor`   | trocar a paleta do degradê               |
 | `cztheme`| trocar o tema do zsh                     |
 
-Config: `~/.config/theader/theader.cfg` (`title=`, `TNAME=`, `logo=`, `indent=`, `paleta=`, `frame=mid|thick|thin`).
+Config: `~/.config/theader/theader.cfg` (`title=`, `TNAME=`, `TLABEL=`, `logo=`, `indent=`, `paleta=`, `frame=mid|thick|thin`).
 Teste rápido do banner: `oxy-banner`.

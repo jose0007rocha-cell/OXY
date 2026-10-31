@@ -257,15 +257,17 @@ _oxy_build_prompt() {
 }
 
 _oxy_check_name() {
-  local line name=""
+  local line name="" label=""
   if [[ -r "$_OXY_CFG" ]]; then
     for line in "${(@f)$(<"$_OXY_CFG")}"; do
       [[ "$line" == TNAME=?* ]] && name="${line#TNAME=}"
+      [[ "$line" == TLABEL=?* ]] && label="${line#TLABEL=}"
     done
   fi
   [[ -z "$name" ]] && name="Oxy"
-  if [[ "$name" != "$_OXY_PN" ]]; then
-    _OXY_PN="$name"
+  [[ -z "$label" ]] && label="Termux"
+  if [[ "$name|$label" != "$_OXY_PN" ]]; then
+    _OXY_PN="$name|$label"
     _oxy_build_prompt
   fi
 }

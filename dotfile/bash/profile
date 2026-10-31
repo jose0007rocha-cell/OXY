@@ -10,15 +10,17 @@ fi
 # prompt com degrade: montado 1 vez; refeito so quando o nome (TNAME=) muda
 _OXY_PN=""
 _oxy_ps1() {
-  local line name="" cfg="$HOME/.config/theader/theader.cfg"
+  local line name="" label="" cfg="$HOME/.config/theader/theader.cfg"
   if [[ -r "$cfg" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
       [[ "$line" == TNAME=?* ]] && name="${line#TNAME=}"
+      [[ "$line" == TLABEL=?* ]] && label="${line#TLABEL=}"
     done <"$cfg"
   fi
   [[ -z "$name" ]] && name="Oxy"
-  if [[ "$name" != "$_OXY_PN" ]]; then
-    _OXY_PN="$name"
+  [[ -z "$label" ]] && label="Termux"
+  if [[ "$name|$label" != "$_OXY_PN" ]]; then
+    _OXY_PN="$name|$label"
     local out
     out="$(command oxy-banner --prompt bash 2>/dev/null)"
     if [[ -n "$out" ]]; then PS1="$out "; else PS1='\n┏━━[ Termux ]·····[ Oxy ]━━━>\n┗━━❯❯❯ '; fi

@@ -126,6 +126,24 @@ function c_name() {
   echo
 }
 
+# primeiro rotulo do prompt: ──[ TERMUX ]·····[ Oxy ]───>
+function c_term() {
+  local current label
+  current=$(cfg_get TLABEL)
+  [[ -z "$current" ]] && current="Termux"
+  read -r -e -i "$current" -p "Rotulo do prompt (1o colchete): " label || true
+  label=$(cfg_clean "$label")
+  if [[ -z "$label" ]]; then
+    echo "Nenhum texto digitado. Nada foi alterado."
+    return 0
+  fi
+  cfg_set TLABEL "$label"
+  echo -e "\033[32m[✔] Rotulo do prompt salvo: \"$label\"\033[0m"
+  echo "No zsh/bash o novo texto aparece no proximo prompt; no fish, abra uma nova sessao."
+  OXY_CFG="$OXY_CFG_FILE" "$OXY_BANNER_BIN" --prompt ansi 2>/dev/null || true
+  echo
+}
+
 function c_logo() {
 
   confi

@@ -16,7 +16,7 @@ CFG="${OXY_CFG:-$HOME/.config/theader/theader.cfg}"
 LOGO_DIR="${OXY_LOGO_DIR:-$HOME/.config/theader/logo}"
 
 # ---------- config (sem fork) ----------
-title="OXY"; logo="losango.txt"; indent=2; paleta="neon"; frame="mid"; tname="Oxy"
+title="OXY"; logo="losango.txt"; indent=2; paleta="neon"; frame="mid"; tname="Oxy"; tlabel="Termux"
 if [[ -f "$CFG" ]]; then
   while IFS='=' read -r k v || [[ -n "$k" ]]; do
     v="${v%$'\r'}"
@@ -27,6 +27,7 @@ if [[ -f "$CFG" ]]; then
       paleta) [[ -n "$v" ]] && paleta="$v" ;;
       frame)  [[ -n "$v" ]] && frame="$v" ;;
       TNAME)  [[ -n "$v" ]] && tname="$v" ;;
+      TLABEL) [[ -n "$v" ]] && tlabel="$v" ;;
     esac
   done <"$CFG"
 fi
@@ -86,14 +87,24 @@ colorseq() {
 # ======================= MODO PROMPT =======================
 if [[ "$1" == "--prompt" ]]; then
   sh="${2:-ansi}"
-  n="$tname"
   case "$sh" in
-    zsh)  n="${n//\\/\\\\}"; n="${n//%/%%}"; n="${n//\$/\\\$}"; n="${n//\`/\\\`}"; ob='%{'; cb='%}' ;;
-    bash) n="${n//\\/\\\\}"; n="${n//\$/\\\$}"; n="${n//\`/\\\`}"; ob='\['; cb='\]' ;;
+    zsh)  ob='%{'; cb='%}' ;;
+    bash) ob='\['; cb='\]' ;;
     *)    ob=''; cb='' ;;
   esac
+  # protege caracteres especiais do prompt (nome e rotulo digitados pela pessoa)
+  esc_prompt() {
+    local v="$1"
+    case "$sh" in
+      zsh)  v="${v//\\/\\\\}"; v="${v//%/%%}"; v="${v//\$/\\\$}"; v="${v//\`/\\\`}" ;;
+      bash) v="${v//\\/\\\\}"; v="${v//\$/\\\$}"; v="${v//\`/\\\`}" ;;
+    esac
+    REPLY="$v"
+  }
+  esc_prompt "$tname";  n="$REPLY"
+  esc_prompt "$tlabel"; lb="$REPLY"
   # segmentos: texto|negrito
-  segs=("┏━━[|0" " Termux |1" "]|0" "·····|0" "[|0" " ${n} |1" "]|0" "━━━>|0")
+  segs=("┏━━[|0" " ${lb} |1" "]|0" "·····|0" "[|0" " ${n} |1" "]|0" "━━━>|0")
   total=0
   for sg in "${segs[@]}"; do t="${sg%|*}"; t="${t//\\\\/x}"; ((total += ${#t})); done
   out=$'\n'; idx=0

@@ -18,6 +18,7 @@ declare -A CMD_FUNC=(
   [ctpro]=key_properties
   [cztheme]=c_theme
   [cname]=c_name
+  [cterm]=c_term
   [ccor]=c_cor
 )
 
@@ -82,6 +83,7 @@ if command -v gum >/dev/null 2>&1; then
     "clogo    $ICON_LOGO — Change logo"
     "ctitle   $ICON_TITLE — Type header/title"
     "cname    $ICON_TITLE — Change prompt name"
+    "cterm    $ICON_TITLE — Change prompt label (Termux)"
     "ccor     $ICON_TITLE — Change gradient colors"
     "ctpro    $ICON_PROP — Change termux.properties"
   )
@@ -107,6 +109,6 @@ if command -v gum >/dev/null 2>&1; then
 
   run_cmd "$choice_cmd"
 else
-  echo "gum not installed. Usage: theader [clogo|ctitle|cname|ccor|ctpro|cztheme]" >&2
+  echo "gum not installed. Usage: theader [clogo|ctitle|cname|cterm|ccor|ctpro|cztheme]" >&2
   exit 1
 fi
