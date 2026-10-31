@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+# =====================================================================
+#  OXY banner  -  moldura grossa + logo + titulo em letras de bloco
+#  Nao depende de figlet / boxes / lolcat (so de bash e tput opcional).
+#
+#  Uso:
+#    oxy-banner                 -> banner completo (le ~/.config/theader/theader.cfg)
+#    oxy-banner --text "Nome"   -> so as letras grandes (usado no preview do ctitle)
+#  Variaveis opcionais: OXY_CFG (arquivo de config), OXY_LOGO_DIR
+# =====================================================================
+export LC_ALL=C.UTF-8
+shopt -s extglob
+
+CFG="${OXY_CFG:-$HOME/.config/theader/theader.cfg}"
+LOGO_DIR="${OXY_LOGO_DIR:-$HOME/.config/theader/logo}"
+
+# ---------- config (sem fork) ----------
+title="OXY"; logo="dragao.txt"; indent=2
+if [[ -f "$CFG" ]]; then
+  while IFS='=' read -r k v || [[ -n "$k" ]]; do
+    v="${v%$'\r'}"
+    case "$k" in
+      title)  [[ -n "$v" ]] && title="$v" ;;
+      logo)   [[ -n "$v" ]] && logo="$v" ;;
+      indent) [[ "$v" =~ ^[0-9]+$ ]] && indent="$v" ;;
+    esac
+  done <"$CFG"
+fi
+
+MODE=full
+if [[ "$1" == "--text" ]]; then MODE=text; title="${2:-$title}"; fi
+
+# ---------- largura do terminal ----------
+W="${COLUMNS:-0}"
+if ((W < 1)); then W=$(tput cols 2>/dev/null || echo 0); fi
+if ((W < 1)); then read -r _ W < <(stty size 2>/dev/null) ; fi
+((W < 1)) && W=60
+((W < 24)) && W=24
+
+# ---------- fonte de blocos (3x5; M/N/W maiores) ----------
+declare -A G=(
+  [A]="010 101 111 101 101"  [B]="110 101 110 101 110"  [C]="011 100 100 100 011"
+  [D]="110 101 101 101 110"  [E]="111 100 110 100 111"  [F]="111 100 110 100 100"
+  [G]="011 100 101 101 011"  [H]="101 101 111 101 101"  [I]="111 010 010 010 111"
+  [J]="001 001 001 101 010"  [K]="101 101 110 101 101"  [L]="100 100 100 100 111"
+  [M]="10001 11011 10101 10001 10001"
+  [N]="1001 1101 1011 1001 1001"
+  [O]="111 101 101 101 111"  [P]="110 101 110 100 100"  [Q]="111 101 101 111 001"
+  [R]="110 101 110 101 101"  [S]="011 100 010 001 110"  [T]="111 010 010 010 010"
+  [U]="101 101 101 101 111"  [V]="101 101 101 101 010"
+  [W]="10001 10001 10101 11011 10001"
+  [X]="101 101 010 101 101"  [Y]="101 101 010 010 010"  [Z]="111 001 010 100 111"
+  [0]="111 101 101 101 111"  [1]="010 110 010 010 111"  [2]="110 001 010 100 111"
+  [3]="110 001 010 001 110"  [4]="101 101 111 001 001"  [5]="111 100 110 001 110"
+  [6]="011 100 111 101 111"  [7]="111 001 010 010 010"  [8]="111 101 111 101 111"
+  [9]="111 101 111 001 110"
+  ["-"]="000 000 111 000 000" ["."]="0 0 0 0 1" ["_"]="000 000 000 000 111"
+  ["!"]="1 1 1 0 1"           [" "]="00 00 00 00 00"
+)
+
+# ---------- normaliza o texto (maiusculas, tira acentos) ----------
+t="${title^^}"
+for p in "Á:A" "À:A" "Ã:A" "Â:A" "Ä:A" "É:E" "È:E" "Ê:E" "Ë:E" "Í:I" "Ì:I" "Î:I" \
+         "Ó:O" "Ò:O" "Õ:O" "Ô:O" "Ö:O" "Ú:U" "Ù:U" "Û:U" "Ü:U" "Ç:C" "Ñ:N"; do
+  t="${t//${p%%:*}/${p##*:}}"
+done
+chars=()
+for ((i = 0; i < ${#t}; i++)); do
+  c="${t:i:1}"
+  [[ -n "${G[$c]+x}" ]] && chars+=("$c")
+done
+((${#chars[@]} == 0)) && chars=(O X Y)
+
+# largura do texto em "pixels" de fonte
+glyph_w() { local r=(${G[$1]}); echo "${#r[0]}"; }
+total_px=0
+for c in "${chars[@]}"; do ((total_px += $(glyph_w "$c") + 1)); done
+((total_px--))
+
+# ---------- logo ----------
+logo_rows=(); logo_w=0
+if [[ "$MODE" == full && W -ge 44 && -f "$LOGO_DIR/$logo" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    logo_rows+=("$line")
+    plain="${line//$'\e'\[*([0-9;])m/}"
+    ((${#plain} > logo_w)) && logo_w=${#plain}
+  done <"$LOGO_DIR/$logo"
+fi
+((${#logo_rows[@]} > 8)) && logo_rows=("${logo_rows[@]:0:8}")
+
+if [[ "$MODE" == text ]]; then
+  avail=$W
+else
+  left=$((${#logo_rows[@]} ? indent + logo_w + 2 : 0))
+  avail=$((W - 2 - left - 1))
+fi
+
+# escala: 2 colunas por pixel (letras grossas) se couber, senao 1
+px=2; ((total_px * 2 > avail)) && px=1
+# se ainda nao cabe, corta o final do texto
+while ((total_px > avail && ${#chars[@]} > 1)); do
+  unset 'chars[${#chars[@]}-1]'; chars=("${chars[@]}")
+  total_px=0
+  for c in "${chars[@]}"; do ((total_px += $(glyph_w "$c") + 1)); done
+  ((total_px--))
+done
+text_w=$((total_px * px))
+
+# ---------- monta as 5 linhas do titulo com degrade verde ----------
+grad() { # $1=coluna $2=total -> r;g;b  (verde vivo -> verde limao)
+  local n=$1 d=$2; ((d < 1)) && d=1
+  echo "$((50 + 100 * n / d));$((255 - 30 * n / d));$((70 - 50 * n / d))"
+}
+title_rows=()
+for ((row = 0; row < 5; row++)); do
+  s=""; col=0
+  for ci in "${!chars[@]}"; do
+    pat=(${G[${chars[ci]}]})
+    bits="${pat[row]}"
+    for ((b = 0; b < ${#bits}; b++)); do
+      if [[ "${bits:b:1}" == 1 ]]; then
+        s+=$'\e[38;2;'"$(grad $((col * px)) "$text_w")"m
+        for ((k = 0; k < px; k++)); do s+="█"; done
+      else
+        for ((k = 0; k < px; k++)); do s+=" "; done
+      fi
+      ((col++))
+    done
+    if ((ci < ${#chars[@]} - 1)); then
+      for ((k = 0; k < px; k++)); do s+=" "; done
+      ((col++))
+    fi
+  done
+  title_rows+=("$s"$'\e[0m')
+done
+
+if [[ "$MODE" == text ]]; then
+  for r in "${title_rows[@]}"; do printf '%s\n' "$r"; done
+  exit 0
+fi
+
+# ---------- moldura grossa (meio-bloco) ----------
+BLUE=$'\e[1;38;5;33m'; RST=$'\e[0m'
+inner=$((W - 2))
+hline() { local s="" i; for ((i = 0; i < inner; i++)); do s+="$1"; done; printf '%s' "$s"; }
+top="${BLUE}▛$(hline ▀)▜${RST}"
+bot="${BLUE}▙$(hline ▄)▟${RST}"
+pad() { local n=$1 s=""; ((n < 0)) && n=0; printf '%*s' "$n" ""; }
+
+region=$((inner - left))
+tl=$(((region - text_w) / 2)); ((tl < 0)) && tl=0
+tr=$((region - text_w - tl)); ((tr < 0)) && tr=0
+
+printf '%s\n' "$top"
+for ((r = 0; r < 8; r++)); do
+  line="${BLUE}▌${RST}"
+  if ((${#logo_rows[@]})); then
+    lr="${logo_rows[r]:-}"
+    plain="${lr//$'\e'\[*([0-9;])m/}"
+    line+="$(pad "$indent")${lr}${RST}$(pad $((logo_w - ${#plain} + 2)))"
+  fi
+  tr_idx=$((r - 1))
+  if ((tr_idx >= 0 && tr_idx < 5)); then
+    line+="$(pad "$tl")${title_rows[tr_idx]}$(pad "$tr")"
+  else
+    line+="$(pad $((region)))"
+  fi
+  line+="${BLUE}▐${RST}"
+  printf '%s\n' "$line"
+done
+printf '%s\n' "$bot"

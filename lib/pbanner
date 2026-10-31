@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Banner do menu do instalador: usa o mesmo motor do banner final (lib/oxybanner)
+user="$(mktemp)"
+term_width=$(stty size 2>/dev/null | cut -d ' ' -f 2)
+banner() {
+  clear
+  COLUMNS="${term_width:-60}" OXY_CFG="$SCRIPT_DIR/theader.cfg" OXY_LOGO_DIR="$SCRIPT_DIR/logo" \
+    bash "$SCRIPT_DIR/lib/oxybanner"
+}

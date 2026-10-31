@@ -1,0 +1,281 @@
+#!/usr/bin/env bash
+
+# ----------------------------------------
+# ZSH Plugin Manager + Oh-My-Zsh Installer
+# ----------------------------------------
+
+ZSHRC="$HOME/.zshrc"
+ZSH="$HOME/.oh-my-zsh"
+ZSH_CUSTOM="${ZSH_CUSTOM:-$ZSH/custom}"
+
+# Function 1: Install Oh-My-Zsh manually
+install_oh_my_zsh() {
+  if [ -d "$ZSH" ]; then
+    echo "⚠️  Oh-My-Zsh already installed at $ZSH"
+    return
+  fi
+
+  echo "⬇️  Installing Oh-My-Zsh..."
+  git clone https://github.com/ohmyzsh/ohmyzsh.git "$ZSH"
+
+  # create default .zshrc if not exists
+  if [ ! -f "$ZSHRC" ]; then
+    cp "$ZSH/templates/zshrc.zsh-template" "$ZSHRC"
+    sed -i 's/plugins=(git)/plugins=()/' $ZSHRC
+    echo "✅ Default .zshrc created"
+  fi
+
+  echo "✅ Oh-My-Zsh installed at $ZSH"
+  echo "👉 Restart your shell or run: source ~/.zshrc"
+}
+
+# Function 1: Safe add to .zshrc
+add_zsh_plugin() {
+  local plugin=" $1"
+  # Agar plugins= line hi nahi hai → naya create karo
+  if ! grep -q "^plugins=" "$ZSHRC"; then
+    echo "plugins=($plugin)" >>"$ZSHRC"
+    echo "✅ Plugin '$plugin' added (new plugins line created)"
+    return
+  fi
+
+  # Current plugins extract karo
+  local current
+  current=$(sed -n 's/^plugins=(\(.*\))/\1/p' "$ZSHRC")
+
+  # Duplicate check: remove leading/trailing spaces from each plugin
+  if echo "$current" | tr ' ' '\n' | sed 's/^ *//;s/ *$//' | grep -qx "${plugin## }"; then
+    echo "⭐ Plugin '${plugin## }' already enabled in .zshrc (skipped)"
+    return
+  fi
+
+  # Naya list append karo aur overwrite karo
+  local updated="plugins=($current$plugin)"
+  sed -i "s/^plugins=(.*)/$updated/" "$ZSHRC"
+
+  echo "✅ Plugin '${plugin## }' added to .zshrc"
+}
+
+add_gh_plugin() {
+  local repo="$1"
+  local plugin_name
+  plugin_name=$(basename "$repo")
+
+  if [ ! -d "$ZSH_CUSTOM/plugins/$plugin_name" ]; then
+    git clone "https://github.com/$repo.git" "$ZSH_CUSTOM/plugins/$plugin_name"
+    echo "✅ GitHub plugin '$repo' cloned"
+  else
+    echo "🚨  Plugin '$repo' already exists locally"
+  fi
+
+  add_zsh_plugin "$plugin_name" # ✅ only basename
+}
+
+fzf_add_plugin() {
+  local choices=(
+    "z"
+    "git"
+    "zsh-users/zsh-autosuggestions"
+    "zsh-users/zsh-syntax-highlighting"
+    "zsh-users/zsh-completions"
+  )
+
+  local green_star=$'\033[32m\033[0m'
+
+  # Read current plugins from .zshrc (multi-line safe)
+  local current_plugins
+  current_plugins=$(
+    sed -n '/^plugins=(/,/)/p' "$ZSHRC" |
+      tr -d '()' | tr -s '[:space:]' '\n'
+  )
+
+  local options=()
+  local i=1
+  for c in "${choices[@]}"; do
+    local name
+    if [[ "$c" == */* ]]; then
+      name=$(basename "$c") # e.g. "joshskidmore/zsh-fzf-history-search" → "zsh-fzf-history-search"
+    else
+      name="$c"
+    fi
+
+    local display="$c"
+
+    # Green star logic
+    if echo "$current_plugins" | grep -qx "$name"; then
+      # Plugin enabled in .zshrc
+      if [ -d "$ZSH_CUSTOM/plugins/$name" ] || [ -d "$ZSH/plugins/$name" ]; then
+        display="$c $green_star"
+      fi
+    fi
+
+    options+=("$i. $display")
+    ((i++))
+  done
+
+  # Run fzf with multi-select
+  local selection
+  selection=$(printf "%s\n" "${options[@]}" |
+    fzf -m --prompt="Select plugin(s) ➤ " --exit-0 \
+      --height=40% --border --ansi --no-info --reverse --no-scrollbar)
+
+  if [[ -z "$selection" ]]; then
+    echo "❌ No plugins selected"
+    return
+  fi
+
+  # Process each selected line
+  while IFS= read -r choice; do
+    local selected="${choice#*. }" # strip numbering
+    selected="${selected%% *}"     # strip possible star
+
+    if [[ "$selected" == */* ]]; then
+      add_gh_plugin "$selected"
+    else
+      add_zsh_plugin "$selected"
+    fi
+  done <<<"$selection"
+}
+
+# remove zsh plugins
+remove_zsh_plugin() {
+  # Extract current plugins and trim spaces
+  local current
+  current=$(sed -n 's/^plugins=(\(.*\))/\1/p' "$ZSHRC" | xargs)
+
+  if [[ -z "$current" ]]; then
+    echo "🚨   No plugins found in $ZSHRC"
+    return
+  fi
+
+  # Convert to array, ignoring empty entries
+  local plugins_array=()
+  for p in $current; do
+    [[ -n "$p" ]] && plugins_array+=("$p")
+  done
+
+  # Prepare numbered list safely (no trailing newline)
+  local numbered_list=""
+  for i in "${!plugins_array[@]}"; do
+    numbered_list+="$((i + 1)). ${plugins_array[i]}"
+    [[ $i -lt $((${#plugins_array[@]} - 1)) ]] && numbered_list+=$'\n'
+  done
+
+  # Multi-select with fzf
+  local selection
+  selection=$(echo "$numbered_list" |
+    fzf -m --prompt="Select plugin(s) ➤ " --exit-0 \
+      --height=40% --border --ansi --no-info --reverse --no-scrollbar \
+    )
+
+  # If user cancels fzf
+  [[ -z "$selection" ]] && {
+    echo "❌ No plugin selected"
+    return
+  }
+
+  # Extract plugin names (strip numbers and dot)
+  local selected_plugins=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && selected_plugins+=("$(echo "$line" | sed 's/^[0-9]\+\. //')")
+  done <<<"$selection"
+
+  # Build updated plugin list by excluding selected plugins
+  local updated=""
+  for p in "${plugins_array[@]}"; do
+    skip=false
+    for sp in "${selected_plugins[@]}"; do
+      [[ "$p" == "$sp" ]] && skip=true
+    done
+    [[ "$skip" == false ]] && updated="$updated $p"
+  done
+
+  # Overwrite plugins line in .zshrc
+  sed -i "s/^plugins=(.*)/plugins=($updated)/" "$ZSHRC"
+
+  echo "✅ Removed plugin(s): ${selected_plugins[*]}"
+}
+
+# Function 5: Change ZSH theme
+change_zsh_theme() {
+  local theme="$1"
+
+  if [ -z "$theme" ]; then
+    echo "❌ Usage: change_zsh_theme <theme-name>"
+    return
+  fi
+
+  if grep -q '^ZSH_THEME=' "$ZSHRC"; then
+    sed -i "s/^ZSH_THEME=.*/ZSH_THEME=\"$theme\"/" "$ZSHRC"
+  else
+    echo "ZSH_THEME=\"$theme\"" >>"$ZSHRC"
+  fi
+
+  echo "✅ Theme changed to '$theme' in .zshrc"
+}
+
+create_custom_theme() {
+  local theme_name="${1:-oxy}"
+  local theme_dir="$ZSH_CUSTOM/themes"
+  local theme_file="$theme_dir/$theme_name.zsh-theme"
+
+  mkdir -p "$theme_dir"
+  # sempre sobrescreve: assim reinstalar corrige temas antigos
+  rm -f "$theme_dir/theader.zsh-theme"
+
+  # heredoc com aspas: nada e expandido aqui, o zsh le tudo no login
+  cat >"$theme_file" <<'EOF'
+# -----------------------------------------------------
+#  Tema OXY para Oh-My-Zsh
+#
+#  ┏━━[ Termux ]·····[ Oxy ]━━━>
+#  ┗━━❯❯❯
+#
+#  O nome (Oxy) vem de TNAME= em ~/.config/theader/theader.cfg
+#  (mude com o comando: cname). Lido a cada prompt, sem precisar reiniciar.
+# -----------------------------------------------------
+
+if [[ "$plugins" == *"zsh-syntax-highlighting"* ]]; then
+  ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=39'
+  ZSH_HIGHLIGHT_STYLES[comment]='fg=226,bold'
+  zle_highlight=(default:bold,fg=white)
+fi
+
+_OXY_CFG="$HOME/.config/theader/theader.cfg"
+_OXY_PN="Oxy"
+
+_oxy_read_name() {
+  local line name=""
+  if [[ -r "$_OXY_CFG" ]]; then
+    for line in "${(@f)$(<"$_OXY_CFG")}"; do
+      [[ "$line" == TNAME=?* ]] && name="${line#TNAME=}"
+    done
+  fi
+  [[ -z "$name" ]] && name="Oxy"
+  _OXY_PN="${name//\%/%%}"   # protege o % para o prompt
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _oxy_read_name
+_oxy_read_name
+
+setopt prompt_subst
+
+ZSH_THEME_GIT_PROMPT_PREFIX="%F{8}(%F{2}"
+ZSH_THEME_GIT_PROMPT_SUFFIX="%F{8})%f "
+ZSH_THEME_GIT_PROMPT_DIRTY="%F{1}*%f"
+ZSH_THEME_GIT_PROMPT_CLEAN=""
+
+_oxy_pl=$'\ue0b6'   # cantos arredondados (Nerd Font)
+_oxy_pr=$'\ue0b4'
+_oxy_cal=$'\uf073'
+
+# linha 1: traços grossos em vermelho, [ Termux ] ciano, dots cinza, [ Nome ] azul, seta amarela
+PROMPT=$'\n%F{red}%B┏━━[%b%F{cyan}%B Termux %b%F{red}%B]%b%F{8}·····%F{red}%B[%b%F{blue}%B ${_OXY_PN} %b%F{red}%B]━━━%F{yellow}>%b%f\n%F{red}%B┗━━%F{red}❯%F{blue}❯%F{8}❯%b%f '
+
+# lado direito: jobs, erro, git, pasta e data
+RPROMPT="%(1j.%F{2}●%f .)%(0?..%F{1}✘%f )"'$(git_prompt_info)'"%F{8}%~%f %F{2}${_oxy_pl}%K{2}%F{black}${_oxy_cal} %F{white}%B%D{%d/%b/%y}%b %K{8}%F{0} %D{%a} %k%F{8}${_oxy_pr}%f"
+EOF
+
+  echo "✅ Tema '$theme_name' criado em $theme_file"
+  change_zsh_theme "$theme_name"
+}
