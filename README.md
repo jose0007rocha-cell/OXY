@@ -1,6 +1,7 @@
 # OXY — banner e prompt personalizados para o Termux
 
 Base: T-Header (Remo773), reformulado.
+Repositório: https://github.com/jose0007rocha-cell/OXY.git
 
 ```
 ▛▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▜
@@ -28,8 +29,9 @@ Base: T-Header (Remo773), reformulado.
 ```bash
 pkg update && pkg upgrade -y
 pkg install git fzf -y
-unzip OXY-master.zip && cd OXY-master
-bash t-header.sh        # 1. Install packages  →  2. Setup → Zsh → ...
+git clone https://github.com/jose0007rocha-cell/OXY.git
+cd OXY
+bash OXY.sh        # 1. Install packages  →  2. Setup → Zsh → ...
 ```
 Depois abra uma nova sessão (ou `source ~/.zshrc`).
 
