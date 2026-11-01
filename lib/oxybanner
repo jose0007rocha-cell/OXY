@@ -104,7 +104,7 @@ if [[ "$1" == "--prompt" ]]; then
   esc_prompt "$tname";  n="$REPLY"
   esc_prompt "$tlabel"; lb="$REPLY"
   # segmentos: texto|negrito
-  segs=("┏━━[|0" " ${lb} |1" "]|0" "·····|0" "[|0" " ${n} |1" "]|0" "━━━>|0")
+  segs=("┏━━[|0" " ${lb} |1" "]|0" "··|0" "[|0" " ${n} |1" "]|0" " ❯❯❯|0")
   total=0
   for sg in "${segs[@]}"; do t="${sg%|*}"; t="${t//\\\\/x}"; ((total += ${#t})); done
   out=$'\n'; idx=0

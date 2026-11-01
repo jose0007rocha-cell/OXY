@@ -23,7 +23,7 @@ _oxy_ps1() {
     _OXY_PN="$name|$label"
     local out
     out="$(command oxy-banner --prompt bash 2>/dev/null)"
-    if [[ -n "$out" ]]; then PS1="$out "; else PS1='\n┏━━[ Termux ]·····[ Oxy ]━━━>\n┗━━❯❯❯ '; fi
+    if [[ -n "$out" ]]; then PS1="$out "; else PS1='\n┏━━[ Termux ]··[ Oxy ] ❯❯❯\n┗━━❯❯❯ '; fi
   fi
 }
 PROMPT_COMMAND="_oxy_ps1${PROMPT_COMMAND:+; $PROMPT_COMMAND}"

@@ -228,7 +228,7 @@ create_custom_theme() {
 # -----------------------------------------------------
 #  Tema OXY para Oh-My-Zsh
 #
-#  ┏━━[ Termux ]·····[ Oxy ]━━━>   (com degrade)
+#  ┏━━[ Termux ]··[ Oxy ] ❯❯❯   (com degrade)
 #  ┗━━❯❯❯
 #
 #  O nome (Oxy) vem de TNAME= em ~/.config/theader/theader.cfg
@@ -252,7 +252,7 @@ _oxy_build_prompt() {
   if [[ -n "$out" ]]; then
     PROMPT="${out} "
   else
-    PROMPT=$'\n%F{cyan}┏━━[ Termux ]·····[ Oxy ]━━━>%f\n%F{cyan}┗━━❯❯❯%f '
+    PROMPT=$'\n%F{cyan}┏━━[ Termux ]··[ Oxy ] ❯❯❯%f\n%F{cyan}┗━━❯❯❯%f '
   fi
 }
 
